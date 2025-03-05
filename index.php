@@ -1,6 +1,6 @@
 <?php
-require_once '../config/database.php';
-require_once '../routes/api.php';
+require_once ('config/database.php');
+require_once ('routes/api.php');
 
 // Point d'entrée
 header("Content-Type: application/json");

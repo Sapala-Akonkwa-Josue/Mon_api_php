@@ -1,10 +1,17 @@
 <?php
+
+header("Access-Control-Allow-Origin: *");
+header("Content-type: application/json; charset= UTF-8");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
+echo json_encode(["message" => "Bienvenue à l'API de gestion de la bibliotheque d'ouvrage"]);
+
+
 if (file_exists('../config/database.php')) {
     include_once '../config/database.php';
 } else {
     die('Le fichier Database.php est introuvable.');
 }
-
+require_once '../controllers/AuthController.php';
 require_once '../controllers/AuteurController.php';
 require_once '../controllers/CategorieController.php';
 require_once '../controllers/NationaliteController.php';
@@ -15,6 +22,7 @@ $database = new Database();
 $db = $database->connect();
 
 // Passer la connexion à la base de données aux contrôleurs
+$authController = new AuthController($db);
 $auteurController = new AuteurController($db);
 $categorieController = new CategorieController($db);
 $nationaliteController = new NationaliteController($db);
@@ -24,8 +32,75 @@ $ouvrageController = new OuvrageController($db);
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 $requestUri = $_SERVER['REQUEST_URI'];
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Route pour la connexion (POST /login)
+if ($requestMethod === 'POST' && strpos($requestUri, '/login') !== false) {
+    // Récupérer les données envoyées en POST
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['usernameOrEmail']) || !isset($data['password'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Les champs usernameOrEmail et password sont obligatoires.']);
+        exit;
+    }
+    
+    echo $authController->login($data['usernameOrEmail'], $data['password']);
+}
+
+// Route pour ajouter un nouvel utilisateur
+elseif ($requestMethod === 'POST' && strpos($requestUri, '/users') !== false) {
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['username']) || !isset($data['email']) || !isset($data['password'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Les champs username, email et password sont obligatoires.']);
+        exit;
+    }
+    
+    echo $authController->addUser($data);
+}
+
+// Route pour récupérer tous les utilisateurs
+elseif ($requestMethod === 'GET' && strpos($requestUri, '/users') !== false) {
+    echo $authController->getusers();
+}
+
+// Route pour mettre à jour un utilisateur
+elseif ($requestMethod === 'PUT' && strpos($requestUri, '/users') !== false) {
+    // Extraire l'ID utilisateur depuis l'URL
+    $id = $_GET['id'] ?? null;
+
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['error' => 'L\'ID utilisateur est obligatoire pour la mise à jour.']);
+        exit;
+    }
+
+    $data = json_decode(file_get_contents('php://input'), true);
+    echo $authController->updateusers($id, $data);
+}
+
+
+// Route pour supprimer un utilisateur
+elseif ($requestMethod === 'DELETE' && strpos($requestUri, '/users') !== false) {
+    // Extraire l'ID utilisateur depuis l'URL
+    $id = $_GET['id'] ?? null;
+
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['error' => 'L\'ID utilisateur est obligatoire pour la suppression.']);
+        exit;
+    }
+
+    echo $authController->deleteusers($id);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Route pour récupérer tous les auteurs (GET)
-if ($requestMethod === 'GET' && strpos($requestUri, '/auteurs') !== false) {
+elseif ($requestMethod === 'GET' && strpos($requestUri, '/auteurs') !== false) {
     $auteurController->getAllAuteurs();
 }
 

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1
--- Généré le : lun. 03 mars 2025 à 11:14
+-- Généré le : mer. 05 mars 2025 à 13:45
 -- Version du serveur : 10.4.28-MariaDB
 -- Version de PHP : 8.2.4
 
@@ -35,14 +35,6 @@ CREATE TABLE `auteur` (
   `image` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Déchargement des données de la table `auteur`
---
-
-INSERT INTO `auteur` (`id_auteur`, `nom_auteur`, `prenom_auteur`, `id_nationalite`, `image`) VALUES
-(1, 'Jules', 'De MOPASSANT', 1, NULL),
-(2, 'Jules', 'De FRANCE', 1, NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -53,14 +45,6 @@ CREATE TABLE `categorie` (
   `id_categorie` int(11) NOT NULL,
   `nom_categorie` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Déchargement des données de la table `categorie`
---
-
-INSERT INTO `categorie` (`id_categorie`, `nom_categorie`) VALUES
-(1, 'CONTES'),
-(2, 'ROMANS');
 
 -- --------------------------------------------------------
 
@@ -73,14 +57,6 @@ CREATE TABLE `nationalite` (
   `nom_nationalite` varchar(100) NOT NULL,
   `image` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Déchargement des données de la table `nationalite`
---
-
-INSERT INTO `nationalite` (`id_nationalite`, `nom_nationalite`, `image`) VALUES
-(1, 'Francaise', 'Hero.PNG'),
-(2, 'Espanyol', NULL);
 
 -- --------------------------------------------------------
 
@@ -97,13 +73,23 @@ CREATE TABLE `ouvrage` (
   `image` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Déchargement des données de la table `ouvrage`
+-- Structure de la table `users`
 --
 
-INSERT INTO `ouvrage` (`id_ouvrage`, `titre_ouvrage`, `id_auteur`, `id_categorie`, `annee_publication`, `image`) VALUES
-(1, 'Rien a faire dans ce pays', 1, 1, '1999', NULL),
-(3, 'J\'ai epouse une religieuse', 1, 1, '2024', 'hero.jpg');
+CREATE TABLE `users` (
+  `id_user` int(11) NOT NULL,
+  `username` varchar(100) NOT NULL,
+  `prenom` varchar(100) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `bio` text DEFAULT NULL,
+  `image` text DEFAULT NULL,
+  `date_inscription` timestamp NOT NULL DEFAULT current_timestamp(),
+  `id_nationalite` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Index pour les tables déchargées
@@ -137,6 +123,14 @@ ALTER TABLE `ouvrage`
   ADD KEY `id_categorie` (`id_categorie`);
 
 --
+-- Index pour la table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id_user`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `id_nationalite` (`id_nationalite`);
+
+--
 -- AUTO_INCREMENT pour les tables déchargées
 --
 
@@ -156,13 +150,19 @@ ALTER TABLE `categorie`
 -- AUTO_INCREMENT pour la table `nationalite`
 --
 ALTER TABLE `nationalite`
-  MODIFY `id_nationalite` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_nationalite` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT pour la table `ouvrage`
 --
 ALTER TABLE `ouvrage`
   MODIFY `id_ouvrage` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT pour la table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Contraintes pour les tables déchargées
@@ -180,6 +180,12 @@ ALTER TABLE `auteur`
 ALTER TABLE `ouvrage`
   ADD CONSTRAINT `ouvrage_ibfk_1` FOREIGN KEY (`id_auteur`) REFERENCES `auteur` (`id_auteur`),
   ADD CONSTRAINT `ouvrage_ibfk_2` FOREIGN KEY (`id_categorie`) REFERENCES `categorie` (`id_categorie`);
+
+--
+-- Contraintes pour la table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`id_nationalite`) REFERENCES `nationalite` (`id_nationalite`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
