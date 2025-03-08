@@ -93,20 +93,9 @@ class AuthController {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     public function getUsersById($id) {
         try {
-            // Récupérer l'utilisateur par son ID depuis le modèle
-            $user = $this->userModel->getUsersById($id);
-
-            // Vérifier si l'utilisateur a été trouvé
-            if ($user) {
-                http_response_code(200); // Code 200 pour le succès
-                echo json_encode(['data' => $user]);
-            } else {
-                http_response_code(404); // Code 404 si l'utilisateur n'est pas trouvé
-                echo json_encode(['message' => 'Utilisateur non trouvé.']);
-            }
+            return $this->userModel->getUsersById($id);
         } catch (Exception $e) {
-            http_response_code(500); // Code 500 pour une erreur interne du serveur
-            echo json_encode(['error' => 'Erreur lors de la récupération de l\'utilisateur : ' . $e->getMessage()]);
+            throw new Exception('Erreur lors de la recuperation de l\'utilisateur: '. $e->getMessage());   
         }
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -147,9 +147,10 @@ elseif ($requestMethod === 'GET' && strpos($requestUri, '/user') !== false) {
         $response = $authController->getUsersById($id);
         if ($response) {
             echo json_encode(['message' => 'Utilisateur récupéré avec succès', 'data' => $response]);
-        } else {
-        http_response_code(404);
-        echo json_encode(['error' => 'Utilisateur non trouvé']);
+        } 
+        else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Utilisateur non trouvé']);
          }
     } catch (Exception $e) {
         http_response_code(500);
