@@ -28,36 +28,59 @@ class Nationalite {
     }
 
     /**
-     * Ajouter une nouvelle nationalité
+     * Ajouter une nouvelle nationalité avec une image
      */
     public function addNationalite($data) {
-        $query = "INSERT INTO nationalite (nom_nationalite, image) VALUES (:nom, :img)";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':nom', $data['nom_nationalite']);
-        $stmt->bindParam(':img', $data['image']);
-        return $stmt->execute();
+        try {
+            $query = "INSERT INTO nationalite (nom_nationalite, image) VALUES (:nom, :img)";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':nom', $data['nom_nationalite']);
+            $stmt->bindParam(':img', $data['image']);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Erreur lors de l'ajout de la nationalité: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
-     * Mettre à jour une nationalité existante
+     * Mettre à jour une nationalité existante avec une image
      */
     public function updateNationalite($id, $data) {
-        $query = "UPDATE nationalite SET nom_nationalite = :nom, image = :img WHERE id_nationalite = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':nom', $data['nom_nationalite']);
-        $stmt->bindParam(':img', $data['image']);
-        $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        try {
+            $query = "UPDATE nationalite SET nom_nationalite = :nom, image = :img WHERE id_nationalite = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':nom', $data['nom_nationalite']);
+            $stmt->bindParam(':img', $data['image']);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la mise à jour de la nationalité: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
-     * Supprimer une nationalité
+     * Supprimer une nationalité avec son image
      */
     public function deleteNationalite($id) {
-        $query = "DELETE FROM nationalite WHERE id_nationalite = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $id);
-        return $stmt->execute();
+        try {
+            // Récupérer l'image avant suppression
+            $nationalite = $this->getNationaliteById($id);
+            if ($nationalite && !empty($nationalite['image'])) {
+                if (file_exists($nationalite['image'])) {
+                    unlink($nationalite['image']);
+                }
+            }
+
+            $query = "DELETE FROM nationalite WHERE id_nationalite = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la suppression de la nationalité: " . $e->getMessage());
+            return false;
+        }
     }
 }
 ?>

@@ -1,132 +1,172 @@
 <?php
-include_once '../models/User.php';
+require_once '../models/User.php';
 
-class AuthController
-{
+class AuthController {
     private $userModel;
 
-    public function __construct($db)
-    {
+    public function __construct($db) {
         $this->userModel = new User($db);
     }
-
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
-     * Méthode pour connecter un utilisateur.
-     *
-     * @param string $usernameOrEmail Le nom d'utilisateur ou l'email de l'utilisateur.
-     * @param string $password Le mot de passe de l'utilisateur.
-     * @return string JSON contenant le statut et les données de l'utilisateur ou un message d'erreur.
+     * Connecter un utilisateur
      */
-    public function login($usernameOrEmail, $password)
-    {
-        // Validation des entrées
-        if (empty($usernameOrEmail)) {
-            return json_encode(['status' => 'error', 'message' => 'Le nom d\'utilisateur ou l\'email est requis.']);
-        }
-        if (empty($password)) {
-            return json_encode(['status' => 'error', 'message' => 'Le mot de passe est requis.']);
-        }
-
-        // Nettoyage des entrées
-        $usernameOrEmail = htmlspecialchars(strip_tags($usernameOrEmail));
-        $password = htmlspecialchars(strip_tags($password));
-
-        // Appel du modèle
-        $user = $this->userModel->login($usernameOrEmail, $password);
-        if ($user) {
-            return json_encode(['status' => 'success', 'user' => $user]);
-        }
-        return json_encode(['status' => 'error', 'message' => 'Nom d\'utilisateur ou mot de passe incorrect.']);
-    }
-
-    /**
-     * Méthode pour récupérer tous les utilisateurs.
-     *
-     * @return string JSON contenant le statut et la liste des utilisateurs ou un message d'erreur.
-     */
-    public function getusers()
-    {
-        $users = $this->userModel->getAllUsers();
-        if ($users) {
-            return json_encode(['status' => 'success', 'data' => $users]);
-        }
-        return json_encode(['status' => 'error', 'message' => 'Aucun utilisateur trouvé.']);
-    }
-
-    /**
-     * Méthode pour ajouter un utilisateur.
-     *
-     * @param array $userData Les données de l'utilisateur à ajouter.
-     * @return string JSON contenant le statut et un message de succès ou d'erreur.
-     */
-    public function addUser($userData)
-    {
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function login($usernameOrEmail, $password) {
         try {
-            // Hashage du mot de passe
-            if (isset($userData['password'])) {
-                $userData['password'] = password_hash($userData['password'], PASSWORD_BCRYPT);
+            // Vérifier si l'utilisateur existe avec le nom d'utilisateur ou l'e-mail
+            $user = $this->userModel->findByUsernameOrEmail($usernameOrEmail);
+            
+            if ($user && password_verify($password, $user['password'])) {
+                http_response_code(200); // Code 200 pour le succès
+                echo json_encode(['message' => 'Connexion réussie', 'data' => $user]);
+            } else {
+                http_response_code(401); // Code 401 pour erreur d'authentification
+                echo json_encode(['error' => 'Nom d\'utilisateur ou mot de passe incorrect']);
+                error_log("Tentative de connexion échouée pour: " . $usernameOrEmail);
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Erreur lors de la connexion : ' . $e->getMessage()]);
+        }
+    }
+     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+   /**
+     * Ajouter un nouvel utilisateur
+     */
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function addUser($userData) {
+        try {
+            // Vérifier si l'utilisateur existe déjà
+            $existingUser = $this->userModel->findByUsernameOrEmail($userData['username']);
+            if ($existingUser) {
+                http_response_code(400); // Code 400 pour une mauvaise requête
+                echo json_encode(['error' => 'Le nom d\'utilisateur ou l\'e-mail est déjà utilisé']);
+                return;
             }
 
-            // Appel du modèle
-            $result = $this->userModel->addUser($userData);
-            if ($result) {
-                return json_encode(['status' => 'success', 'message' => 'Utilisateur ajouté avec succès.']);
+            // Hasher le mot de passe avant de l'enregistrer
+            $userData['password'] = password_hash($userData['password'], PASSWORD_DEFAULT);
+
+            // Ajouter l'utilisateur
+            $userId = $this->userModel->addUser($userData);
+            if ($userId) {
+                http_response_code(201); // Code 201 pour la création réussie
+                echo json_encode(['message' => 'Utilisateur enregistré avec succès', 'userId' => $userId]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['error' => 'Erreur lors de l\'enregistrement de l\'utilisateur']);
             }
-            return json_encode(['status' => 'error', 'message' => 'Erreur lors de l\'ajout de l\'utilisateur.']);
         } catch (Exception $e) {
-            return json_encode(['status' => 'error', 'message' => 'Erreur : ' . $e->getMessage()]);
+            http_response_code(500);
+            echo json_encode(['error' => 'Erreur lors de l\'enregistrement de l\'utilisateur : ' . $e->getMessage()]);
         }
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
-     * Méthode pour mettre à jour un utilisateur.
-     *
-     * @param int $id L'identifiant de l'utilisateur à mettre à jour.
-     * @param array $userData Les nouvelles données de l'utilisateur.
-     * @return string JSON contenant le statut et un message de succès ou d'erreur.
+     * Récupérer tous les utilisateurs
      */
-    public function updateusers($id, $userData)
-    {
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function getUsers() {
         try {
-            // Hashage du mot de passe si fourni
-            if (isset($userData['password'])) {
-                $userData['password'] = password_hash($userData['password'], PASSWORD_BCRYPT);
-            }
+            // Récupérer tous les utilisateurs depuis le modèle
+            $users = $this->userModel->getAllUsers();
 
-            // Appel du modèle
-            $result = $this->userModel->updateusers($id, $userData);
-            if ($result) {
-                return json_encode(['status' => 'success', 'message' => 'Utilisateur mis à jour avec succès.']);
+            // Vérifier si des utilisateurs ont été trouvés
+            if (!empty($users)) {
+                http_response_code(200); // Code 200 pour le succès
+                echo json_encode(['data' => $users]);
+            } else {
+                http_response_code(404); // Code 404 si aucun utilisateur n'est trouvé
+                echo json_encode(['message' => 'Aucun utilisateur trouvé.']);
             }
-            return json_encode(['status' => 'error', 'message' => 'Erreur lors de la mise à jour de l\'utilisateur.']);
         } catch (Exception $e) {
-            return json_encode(['status' => 'error', 'message' => 'Erreur : ' . $e->getMessage()]);
+            http_response_code(500); // Code 500 pour une erreur interne du serveur
+            echo json_encode(['error' => 'Erreur lors de la récupération des utilisateurs : ' . $e->getMessage()]);
         }
     }
-
-    /**
-     * Méthode pour supprimer un utilisateur.
-     *
-     * @param int $id L'identifiant de l'utilisateur à supprimer.
-     * @return string JSON contenant le statut et un message de succès ou d'erreur.
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+     /**
+     * Récupérer un utilisateur par son ID.
      */
-    public function deleteusers($id)
-    {
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function getUsersById($id) {
         try {
-            // Vérification de l'existence de l'utilisateur
-            $user = $this->userModel->getUserById($id);
-            if (!$user) {
-                return json_encode(['status' => 'error', 'message' => 'Utilisateur non trouvé.']);
+            // Récupérer l'utilisateur par son ID depuis le modèle
+            $user = $this->userModel->getUsersById($id);
+
+            // Vérifier si l'utilisateur a été trouvé
+            if ($user) {
+                http_response_code(200); // Code 200 pour le succès
+                echo json_encode(['data' => $user]);
+            } else {
+                http_response_code(404); // Code 404 si l'utilisateur n'est pas trouvé
+                echo json_encode(['message' => 'Utilisateur non trouvé.']);
+            }
+        } catch (Exception $e) {
+            http_response_code(500); // Code 500 pour une erreur interne du serveur
+            echo json_encode(['error' => 'Erreur lors de la récupération de l\'utilisateur : ' . $e->getMessage()]);
+        }
+    }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Mettre à jour un utilisateur
+     */
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function updateUser($id, $userData) {
+        try {
+            // Vérifier si l'utilisateur existe avant de mettre à jour
+            $existingUser = $this->userModel->getUsersById($id);
+            if (!$existingUser) {
+                http_response_code(404); // Code 404 si l'utilisateur n'est pas trouvé
+                echo json_encode(['message' => 'Utilisateur non trouvé.']);
+                return;
             }
 
-            // Suppression de l'utilisateur
-            $result = $this->userModel->deleteusers($id);
-            if ($result) {
-                return json_encode(['status' => 'success', 'message' => 'Utilisateur supprimé avec succès.']);
+            // Mettre à jour l'utilisateur
+            $updated = $this->userModel->updateUser($id, $userData);
+
+            if ($updated) {
+                http_response_code(200); // Code 200 pour le succès
+                echo json_encode(['message' => 'Utilisateur mis à jour avec succès.']);
+            } else {
+                http_response_code(500); // Code 500 en cas d'échec de la mise à jour
+                echo json_encode(['error' => 'Échec de la mise à jour de l\'utilisateur.']);
             }
-            return json_encode(['status' => 'error', 'message' => 'Erreur lors de la suppression de l\'utilisateur.']);
         } catch (Exception $e) {
-            return json_encode(['status' => 'error', 'message' => 'Erreur : ' . $e->getMessage()]);
+            http_response_code(500); // Code 500 pour une erreur interne du serveur
+            echo json_encode(['error' => 'Erreur lors de la mise à jour de l\'utilisateur : ' . $e->getMessage()]);
+        }
+    }
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Supprimer un utilisateur
+     */
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function deleteUser($id) {
+        try {
+            // Vérifier si l'utilisateur existe avant de supprimer
+            $existingUser = $this->userModel->getUsersById($id);
+            if (!$existingUser) {
+                http_response_code(404); // Code 404 si l'utilisateur n'est pas trouvé
+                echo json_encode(['message' => 'Utilisateur non trouvé.']);
+                return;
+            }
+
+            // Supprimer l'utilisateur
+            $deleted = $this->userModel->deleteUser($id);
+
+            if ($deleted) {
+                http_response_code(200); // Code 200 pour le succès
+                echo json_encode(['message' => 'Utilisateur supprimé avec succès.']);
+            } else {
+                http_response_code(500); // Code 500 en cas d'échec de la suppression
+                echo json_encode(['error' => 'Échec de la suppression de l\'utilisateur.']);
+            }
+        } catch (Exception $e) {
+            http_response_code(500); // Code 500 pour une erreur interne du serveur
+            echo json_encode(['error' => 'Erreur lors de la suppression de l\'utilisateur : ' . $e->getMessage()]);
         }
     }
 }

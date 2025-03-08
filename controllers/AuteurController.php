@@ -2,53 +2,80 @@
 require_once '../models/Auteur.php';
 
 class AuteurController {
-    private $model;
+    private $auteurModel;
 
     public function __construct($db) {
-        $this->model = new Auteur($db);
+        $this->auteurModel = new Auteur($db);
     }
 
+    /**
+     * Récupère tous les auteurs.
+     *
+     * @return array
+     */
     public function getAllAuteurs() {
-        $auteurs = $this->model->getAllAuteurs();
-        echo json_encode($auteurs);
+       try {
+        return $this->auteurModel->getAllAuteurs();
+       } catch (Exception $e) {
+        throw new Exception('Erreur lors de la récupération des auteurs : ' . $e->getMessage());
+       }
     }
 
+    /**
+     * Récupère un auteur par son ID.
+     *
+     * @param int $id
+     * @return array|null
+     */
     public function getAuteurById($id) {
-        $auteur = $this->model->getAuteurById($id);
-        if ($auteur) {
-            echo json_encode($auteur);
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Auteur non trouvé']);
-        }
+       try {
+        return $this->auteurModel->getAuteurById($id);
+       } catch (Exception $e) {
+        throw new Exception('Erreur lors de la récupération des auteurs : ' . $e->getMessage());
+       }
     }
 
+    /**
+     * Ajoute un auteur.
+     *
+     * @param array $data
+     * @return bool
+     */
     public function addAuteur($data) {
-        if ($this->model->addAuteur($data)) {
-            http_response_code(201);
-            echo json_encode(['message' => 'Auteur ajouté']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erreur lors de l\'ajout de l\'auteur']);
+        try {
+            return $this->auteurModel->addAuteur($data);
+        } catch (Exception $e) {
+            throw new Exception('Erreur lors de l\'ajout de l\'auteur : ' . $e->getMessage());
         }
     }
 
+    /**
+     * Met à jour un auteur.
+     *
+     * @param int $id
+     * @param array $data
+     * @return bool
+     */
     public function updateAuteur($id, $data) {
-        if ($this->model->updateAuteur($id, $data)) {
-            echo json_encode(['message' => 'Auteur mis à jour']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erreur lors de la mise à jour de l\'auteur']);
+        try {
+            return $this->auteurModel->updateAuteur($id, $data);
+        } catch (Exception $e) {
+            throw new Exception('Erreur lors de la mise à jour de l\'auteur: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Supprime un auteur.
+     *
+     * @param int $id
+     * @return bool
+     */
     public function deleteAuteur($id) {
-        if ($this->model->deleteAuteur($id)) {
-            echo json_encode(['message' => 'Auteur supprimé']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erreur lors de la suppression de l\'auteur']);
-        }
+       try {
+        return $this->auteurModel->deleteAuteur($id);
+       } catch (\Throwable $th) {
+        throw new Exception('Erreur lors de la suppression de l\'auteur : ' . $e->getMessage());
+       }
     }
 }
 ?>

@@ -1,129 +1,183 @@
 <?php
-class User
-{
+class User {
     private $db;
 
-    public function __construct($db)
-    {
+    public function __construct($db) {
         $this->db = $db;
     }
-
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
-     * Méthode pour connecter un utilisateur.
-     *
-     * @param string $usernameOrEmail Le nom d'utilisateur ou l'email de l'utilisateur.
-     * @param string $password Le mot de passe de l'utilisateur.
-     * @return array|false Les données de l'utilisateur ou false si l'authentification échoue.
+     * Trouver un utilisateur par son nom d'utilisateur ou son e-mail
      */
-    public function login($usernameOrEmail, $password)
-    {
-        $query = "SELECT * FROM users WHERE email = :usernameOrEmail OR username = :usernameOrEmail";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':usernameOrEmail', $usernameOrEmail);
-        
-        $stmt->execute();
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function findByUsernameOrEmail($usernameOrEmail) {
+        try {
+            // Préparer la requête SQL
+            $query = "SELECT * FROM users WHERE username = :usernameOrEmail OR email = :usernameOrEmail";
+            $stmt = $this->db->prepare($query);
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Binder les paramètres
+            $stmt->bindParam(':usernameOrEmail', $usernameOrEmail);
 
-        if ($user && password_verify($password, $user['password'])) {
-            // Retourner les données de l'utilisateur sans le mot de passe
-            unset($user['password']);
-            return $user;
+            // Exécuter la requête
+            $stmt->execute();
+
+            // Récupérer l'utilisateur
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            // Journaliser l'erreur
+            error_log("Erreur lors de la recherche de l'utilisateur : " . $e->getMessage());
+            return false;
         }
-        return false;
     }
-
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
-     * Méthode pour récupérer tous les utilisateurs.
-     *
-     * @return array|false La liste des utilisateurs ou false si aucune donnée n'est trouvée.
+     * Connecter un utilisateur
      */
-    public function getAllUsers()
-    {
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function login($usernameOrEmail, $password) {
+        try {
+            // Trouver l'utilisateur par son nom d'utilisateur ou son e-mail
+            $user = $this->findByUsernameOrEmail($usernameOrEmail);
+
+            // Vérifier si l'utilisateur existe et si le mot de passe correspond
+            if ($user && password_verify($password, $user['password'])) {
+                // Retourner les données de l'utilisateur (sans le mot de passe)
+                unset($user['password']);
+                return $user;
+            } else {
+                // Retourner false si l'utilisateur n'existe pas ou si le mot de passe est incorrect
+                return false;
+            }
+        } catch (PDOException $e) {
+            // Journaliser l'erreur
+            error_log("Erreur lors de la tentative de connexion : " . $e->getMessage());
+            return false;
+        }
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+      /**
+     * Ajouter un nouvel utilisateur avec gestion de l'image.
+     */
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function addUser($userData) {
+        try {
+            $query = "INSERT INTO users (username, prenom, email, password, bio, image, id_nationalite) 
+                      VALUES (:username, :prenom, :email, :password, :bio, :image, :id_nationalite)";
+            $stmt = $this->db->prepare($query);
+    
+            // Hash du mot de passe avant de lier la valeur
+            $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
+    
+            // Liaison des paramètres avec les variables
+            $stmt->bindParam(':username', $userData['username']);
+            $stmt->bindParam(':prenom', $userData['prenom']);
+            $stmt->bindParam(':email', $userData['email']);
+            $stmt->bindParam(':password', $hashedPassword);  // Passer la variable
+            $stmt->bindParam(':bio', $userData['bio']);
+            $stmt->bindParam(':image', $userData['image']);
+            $stmt->bindParam(':id_nationalite', $userData['id_nationalite']);
+    
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Erreur lors de l'ajout de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
+    }
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Récupérer tous les utilisateurs.
+     */
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function getAllUsers() {
+       try{
         $query = "SELECT id_user, username, prenom, email, bio, image, date_inscription, id_nationalite FROM users";
         $stmt = $this->db->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Retourner les utilisateurs
+        return $users;
+       }catch (PDOException $e) {
+        // Journaliser l'erreur
+        error_log("Erreur lors de la récupération des utilisateurs : " . $e->getMessage());
+        return false;
     }
-
-    /**
-     * Méthode pour ajouter un utilisateur.
-     *
-     * @param array $userData Les données de l'utilisateur à ajouter.
-     * @return bool True si l'ajout est réussi, sinon false.
+}
+     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+     /**
+     * Récupérer un utilisateur par son ID.
      */
-    public function addUser($userData)
-    {
-        $query = "INSERT INTO users (username, prenom, email, password, bio, image, id_nationalite) 
-                  VALUES (:username, :prenom, :email, :password, :bio, :image, :id_nationalite)";
-        $stmt = $this->db->prepare($query);
-
-        $stmt->bindParam(':username', $userData['username']);
-        $stmt->bindParam(':prenom', $userData['prenom']);
-        $stmt->bindParam(':email', $userData['email']);
-        $stmt->bindParam(':password', $userData['password']);
-        $stmt->bindParam(':bio', $userData['bio']);
-        $stmt->bindParam(':image', $userData['image']);
-        $stmt->bindParam(':id_nationalite', $userData['id_nationalite']);
-
-        return $stmt->execute();
-    }
-
-    /**
-     * Méthode pour mettre à jour un utilisateur.
-     *
-     * @param int $id L'identifiant de l'utilisateur à mettre à jour.
-     * @param array $userData Les nouvelles données de l'utilisateur.
-     * @return bool True si la mise à jour est réussie, sinon false.
-     */
-    public function updateusers($id, $userData)
-    {
-        $query = "UPDATE users 
-                  SET username = :username, prenom = :prenom, email = :email, password = :password, 
-                      bio = :bio, image = :image, id_nationalite = :id_nationalite 
-                  WHERE id_user = :id";
-        $stmt = $this->db->prepare($query);
-
-        $stmt->bindParam(':id', $id);
-        $stmt->bindParam(':username', $userData['username']);
-        $stmt->bindParam(':prenom', $userData['prenom']);
-        $stmt->bindParam(':email', $userData['email']);
-        $stmt->bindParam(':password', $userData['password']);
-        $stmt->bindParam(':bio', $userData['bio']);
-        $stmt->bindParam(':image', $userData['image']);
-        $stmt->bindParam(':id_nationalite', $userData['id_nationalite']);
-
-        return $stmt->execute();
-    }
-
-    /**
-     * Méthode pour supprimer un utilisateur.
-     *
-     * @param int $id L'identifiant de l'utilisateur à supprimer.
-     * @return bool True si la suppression est réussie, sinon false.
-     */
-    public function deleteusers($id)
-    {
-        $query = "DELETE FROM users WHERE id_user = :id";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':id', $id);
-        return $stmt->execute();
-    }
-
-    /**
-     * Méthode pour récupérer un utilisateur par son ID.
-     *
-     * @param int $id L'identifiant de l'utilisateur.
-     * @return array|false Les données de l'utilisateur ou false si non trouvé.
-     */
-    public function getUserById($id)
-    {
-        $query = "SELECT id_user, nom, prenom, email, bio, image, date_inscription, id_nationalite 
-                  FROM user WHERE id_user = :id";
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function getUsersById($id) {
+        try {
+            $query = "SELECT id_user, username, prenom, email, bio, image, date_inscription, id_nationalite 
+                  FROM users WHERE id_user = :id";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            // Journaliser l'erreur
+        error_log("Erreur lors de la récupération l' utilisateur par ID : " . $e->getMessage());
+        return false;
+        }
     }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Mettre à jour un utilisateur avec gestion de l'image.
+     */
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function updateUser($id, $userData) {
+        try {
+            $user = $this->getUserById($id);
+            if ($user && !empty($user['image']) && $user['image'] !== $userData['image']) {
+                if (file_exists($user['image'])) {
+                    unlink($user['image']);
+                }
+            }
+
+            $query = "UPDATE users 
+                      SET username = :username, prenom = :prenom, email = :email, bio = :bio, 
+                          image = :image, id_nationalite = :id_nationalite 
+                      WHERE id_user = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id);
+            $stmt->bindParam(':username', $userData['username']);
+            $stmt->bindParam(':prenom', $userData['prenom']);
+            $stmt->bindParam(':email', $userData['email']);
+            $stmt->bindParam(':bio', $userData['bio']);
+            $stmt->bindParam(':image', $userData['image']);
+            $stmt->bindParam(':id_nationalite', $userData['id_nationalite']);
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la mise à jour de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
+    }
+   
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Supprimer un utilisateur avec suppression de son image.
+     */
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    public function deleteUser($id) {
+        try {
+            $user = $this->getUserById($id);
+            if ($user && !empty($user['image'])) {
+                if (file_exists($user['image'])) {
+                    unlink($user['image']);
+                }
+            }
+
+            $query = "DELETE FROM users WHERE id_user = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id);
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la suppression de l'utilisateur : " . $e->getMessage());
+            return false;
+        }
+    }   
 }
 ?>
