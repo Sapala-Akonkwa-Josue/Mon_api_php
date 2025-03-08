@@ -58,7 +58,7 @@ class NationaliteController {
     public function deleteNationalite($id) {
         try {
             return $this->nationaliteModel->deleteNationalite($id);
-        } catch (\Throwable $th) {
+        } catch (Exception $e) {
             throw new Exception('Erreur lors de la suppression de la nationalite : ' . $e->getMessage());
         }
     }

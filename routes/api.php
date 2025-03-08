@@ -64,7 +64,8 @@ echo json_encode(["message" => "Données reçues avec succès", "data" => $data]
     }
     
     
-    echo $authController->login($data['usernameOrEmail'], $data['password']);
+    $authController->login($data['usernameOrEmail'], $data['password']);
+    exit;
 }
 
 // Route pour ajouter un nouvel utilisateur (POST /users)

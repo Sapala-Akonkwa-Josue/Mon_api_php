@@ -17,19 +17,37 @@ class AuthController {
             // Vérifier si l'utilisateur existe avec le nom d'utilisateur ou l'e-mail
             $user = $this->userModel->findByUsernameOrEmail($usernameOrEmail);
             
-            if ($user && password_verify($password, $user['password'])) {
-                http_response_code(200); // Code 200 pour le succès
-                echo json_encode(['message' => 'Connexion réussie', 'data' => $user]);
-            } else {
-                http_response_code(401); // Code 401 pour erreur d'authentification
-                echo json_encode(['error' => 'Nom d\'utilisateur ou mot de passe incorrect']);
-                error_log("Tentative de connexion échouée pour: " . $usernameOrEmail);
+            if (!$user) {
+                http_response_code(401);
+                echo json_encode(['error' => 'Utilisateur non trouvé dans la base de données']);
+                exit;
             }
+    
+            if (!password_verify($password, $user['password'])) {
+                http_response_code(401);
+                echo json_encode([
+                    'error' => 'Mot de passe incorrect',
+                    'debug_password' => $password,
+                    'debug_hash' => $user['password'],
+                    'debug_verify' => password_verify($password, $user['password']) // Devrait être false
+                ]);
+                exit;
+            }
+    
+            // Supprimer le mot de passe du retour pour la sécurité
+            unset($user['password']);
+    
+            http_response_code(200);
+            echo json_encode(['message' => 'Connexion réussie', 'data' => $user]);
+            exit;
+    
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['error' => 'Erreur lors de la connexion : ' . $e->getMessage()]);
+            exit;
         }
     }
+    
      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
    /**
      * Ajouter un nouvel utilisateur
@@ -135,27 +153,9 @@ class AuthController {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     public function deleteUser($id) {
         try {
-            // Vérifier si l'utilisateur existe avant de supprimer
-            $existingUser = $this->userModel->getUsersById($id);
-            if (!$existingUser) {
-                http_response_code(404); // Code 404 si l'utilisateur n'est pas trouvé
-                echo json_encode(['message' => 'Utilisateur non trouvé.']);
-                return;
-            }
-
-            // Supprimer l'utilisateur
-            $deleted = $this->userModel->deleteUser($id);
-
-            if ($deleted) {
-                http_response_code(200); // Code 200 pour le succès
-                echo json_encode(['message' => 'Utilisateur supprimé avec succès.']);
-            } else {
-                http_response_code(500); // Code 500 en cas d'échec de la suppression
-                echo json_encode(['error' => 'Échec de la suppression de l\'utilisateur.']);
-            }
+            return $this->userModel->deleteUser($id);
         } catch (Exception $e) {
-            http_response_code(500); // Code 500 pour une erreur interne du serveur
-            echo json_encode(['error' => 'Erreur lors de la suppression de l\'utilisateur : ' . $e->getMessage()]);
+            throw new Exception('Erreur lors de la suppression d\'un utilisateur:'  . $e->getMessage());   
         }
     }
 }

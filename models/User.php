@@ -129,7 +129,7 @@ class User {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     public function updateUser($id, $userData) {
         try {
-            $user = $this->getUserById($id);
+            $user = $this->getUsersById($id);
             if ($user && !empty($user['image']) && $user['image'] !== $userData['image']) {
                 if (file_exists($user['image'])) {
                     unlink($user['image']);
@@ -163,7 +163,7 @@ class User {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
     public function deleteUser($id) {
         try {
-            $user = $this->getUserById($id);
+            $user = $this->getUsersById($id);
             if ($user && !empty($user['image'])) {
                 if (file_exists($user['image'])) {
                     unlink($user['image']);
