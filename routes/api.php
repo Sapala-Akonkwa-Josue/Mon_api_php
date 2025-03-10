@@ -328,7 +328,7 @@ echo json_encode(["message" => "Données reçues avec succès", "data" => $data]
     }
 
     // Valider les champs obligatoires
-    if (empty($data['nom']) || empty($data['prenom'])) {
+    if (empty($data['nom_auteur']) || empty($data['prenom_auteur'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Les champs nom et prénom sont obligatoires']);
         exit;
@@ -691,7 +691,7 @@ echo json_encode(["message" => "Données reçues avec succès", "data" => $data]
     }
 
     // Valider les champs obligatoires
-    if (empty($data['titre']) || empty($data['auteur_id']) || empty($data['categorie_id'])) {
+    if (empty($data['titre_ouvrage']) || empty($data['id_auteur']) || empty($data['id_categorie'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Les champs titre, auteur_id et categorie_id sont obligatoires']);
         exit;

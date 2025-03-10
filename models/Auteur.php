@@ -64,6 +64,13 @@ class Auteur {
      */
     public function updateAuteur($id, $data) {
         try {
+            // Récupérer l'image avant la mise a jour
+            $auteur = $this->getAuteurById($id);
+            if ($auteur && !empty($auteur['image'])) {
+                if (file_exists($auteur['image'])) {
+                    unlink($auteur['image']);
+                }
+            }
             $query = "UPDATE auteur SET nom_auteur = :nom, prenom_auteur = :prenom, id_nationalite = :nationalite, image = :img WHERE id_auteur = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':nom', $data['nom_auteur']);
@@ -87,6 +94,13 @@ class Auteur {
      */
     public function deleteAuteur($id) {
         try {
+            // Récupérer l'image avant suppression
+            $auteur = $this->getAuteurById($id);
+            if ($auteur && !empty($auteur['image'])) {
+                if (file_exists($auteur['image'])) {
+                    unlink($auteur['image']);
+                }
+            }
             $query = "DELETE FROM auteur WHERE id_auteur = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $id);

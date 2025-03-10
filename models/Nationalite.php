@@ -48,6 +48,13 @@ class Nationalite {
      */
     public function updateNationalite($id, $data) {
         try {
+             // Récupérer l'image avant avant la mise a jour
+             $nationalite = $this->getNationaliteById($id);
+             if ($nationalite && !empty($nationalite['image'])) {
+                 if (file_exists($nationalite['image'])) {
+                     unlink($nationalite['image']);
+                 }
+             }
             $query = "UPDATE nationalite SET nom_nationalite = :nom, image = :img WHERE id_nationalite = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':nom', $data['nom_nationalite']);

@@ -5,6 +5,7 @@ class AuthController {
     private $userModel;
 
     public function __construct($db) {
+        $this->db = $db;
         $this->userModel = new User($db);
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -13,41 +14,37 @@ class AuthController {
      */
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
     public function login($usernameOrEmail, $password) {
-        try {
-            // Vérifier si l'utilisateur existe avec le nom d'utilisateur ou l'e-mail
-            $user = $this->userModel->findByUsernameOrEmail($usernameOrEmail);
-            
-            if (!$user) {
-                http_response_code(401);
-                echo json_encode(['error' => 'Utilisateur non trouvé dans la base de données']);
-                exit;
-            }
-    
-            if (!password_verify($password, $user['password'])) {
-                http_response_code(401);
-                echo json_encode([
-                    'error' => 'Mot de passe incorrect',
-                    'debug_password' => $password,
-                    'debug_hash' => $user['password'],
-                    'debug_verify' => password_verify($password, $user['password']) // Devrait être false
-                ]);
-                exit;
-            }
-    
-            // Supprimer le mot de passe du retour pour la sécurité
-            unset($user['password']);
-    
-            http_response_code(200);
-            echo json_encode(['message' => 'Connexion réussie', 'data' => $user]);
-            exit;
-    
-        } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Erreur lors de la connexion : ' . $e->getMessage()]);
-            exit;
+        // Requête pour récupérer l'utilisateur par email ou username
+        $stmt = $this->db->prepare("SELECT id_user, username, email, password FROM users WHERE username = ? OR email = ?");
+        $stmt->execute([$usernameOrEmail, $usernameOrEmail]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Debug : vérifier si l'utilisateur est bien récupéré
+        if (!$user) {
+            echo json_encode(['error' => 'Utilisateur non trouvé']);
+            return;
         }
+
+        // Debug : Vérifier ce qui est stocké dans la base
+        $storedHash = $user['password'];
+        echo json_encode(["debug_password" => $password, "debug_hash" => $storedHash, "debug_verify" => password_verify($password, $storedHash)]);
+
+        // Vérification du mot de passe
+        if (!password_verify($password, $storedHash)) {
+            echo json_encode(['error' => 'Mot de passe incorrect']);
+            return;
+        }
+
+        // Réponse de connexion réussie
+        echo json_encode([
+            'message' => 'Connexion réussie',
+            'user' => [
+                'id_user' => $user['id_user'],
+                'username' => $user['username'],
+                'email' => $user['email']
+            ]
+        ]);
     }
-    
      ///////////////////////////////////////////////////////////////////////////////////////////////////////////
    /**
      * Ajouter un nouvel utilisateur

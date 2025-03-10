@@ -32,6 +32,7 @@ class Ouvrage {
      */
     public function addOuvrage($data) {
         try {
+            $annee_publication = date("Y");
             $query = "INSERT INTO ouvrage (titre_ouvrage, id_auteur, id_categorie, annee_publication, image) 
                       VALUES (:titre, :auteur, :categorie, :annee, :img)";
             $stmt = $this->db->prepare($query);
